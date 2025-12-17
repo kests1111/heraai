@@ -1,105 +1,75 @@
 -- ============================================
--- HohoV2 - Полностью чистая версия БЕЗ KEY системы
+-- HohoV2 для Блокс Фрута - БЕЗ KEY системы
 -- ============================================
 
-local game = game
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
 
 repeat task.wait() until game:IsLoaded() and Players.LocalPlayer
 
--- Таблица с ссылками на скрипты по GameId
-local GameScripts = {
-    -- Blox Fruit
-    [94732206] = "https://raw.githubusercontent.com/kests1111/heraai/main/bloxfruit.lua",
-    [2753915549] = "https://raw.githubusercontent.com/kests1111/heraai/main/bloxfruit.lua",
-    
-    -- Pet Simulator X
-    [2316994223] = "https://raw.githubusercontent.com/acsu123/HohoV2/Free/PetSimXFree.lua",
+-- GameIds для Блокс Фрута
+local BloxFruitGameIds = {
+    [94732206] = true,      -- старая версия
+    [2753915549] = true,    -- новая версия
 }
 
--- Функция для безопасной загрузки скрипта
-local function LoadScript(url)
-    local success, result = pcall(function()
-        return game:HttpGet(url)
-    end)
-    
-    if not success then
-        print("Failed to fetch: " .. url)
-        print("Error: " .. tostring(result))
-        return nil
-    end
-    
-    return result
-end
-
--- Функция для инжекта скрипта
-local function InjectScript(code)
-    if not code then return false end
-    
-    local success, result = pcall(function()
-        loadstring(code)()
-    end)
-    
-    if not success then
-        print("Failed to execute script")
-        print("Error: " .. tostring(result))
-        return false
-    end
-    
-    return true
-end
-
--- Получаем GameId текущей игры
 local GameId = game.GameId
 
--- Проверяем есть ли скрипт для этой игры
-if GameScripts[GameId] then
-    print("HohoV2: Loading script for GameId " .. GameId)
-    
+if not BloxFruitGameIds[GameId] then
     StarterGui:SetCore("SendNotification", {
-        Title = "HohoV2 Loader",
-        Text = "Загрузка скрипта для этой игры...",
-        Icon = "rbxassetid://16276677105",
-        Duration = 2
+        Title = "❌ Wrong Game",
+        Text = "Это не Блокс Фрут (GameId: " .. GameId .. ")",
+        Icon = "rbxassetid://16276677105"
     })
-    
-    local scriptUrl = GameScripts[GameId]
-    local scriptCode = LoadScript(scriptUrl)
-    
-    if scriptCode then
-        if InjectScript(scriptCode) then
-            StarterGui:SetCore("SendNotification", {
-                Title = "✓ Success",
-                Text = "Скрипт успешно загружен!",
-                Icon = "rbxassetid://16276677105",
-                Duration = 3
-            })
-        else
-            StarterGui:SetCore("SendNotification", {
-                Title = "✗ Error",
-                Text = "Ошибка при загрузке скрипта",
-                Icon = "rbxassetid://16276677105",
-                Duration = 3
-            })
-        end
-    else
-        StarterGui:SetCore("SendNotification", {
-            Title = "✗ Download Error",
-            Text = "Не удалось загрузить скрипт с GitHub",
-            Icon = "rbxassetid://16276677105",
-            Duration = 3
-        })
+    return
+end
+
+-- Полностью отключаем все проверки ключей
+_G.script_key = "free_bypass_key"
+_G.MY_KEY_IS = "free_bypass_key"
+_G.KEY = "free_bypass_key"
+_G.key = "free_bypass_key"
+_G.HOHO_KEY = "free_bypass_key"
+
+getgenv().script_key = "free_bypass_key"
+getgenv().MY_KEY_IS = "free_bypass_key"
+
+pcall(function()
+    if writefile then
+        writefile("HohoKeyV4.txt", "free_bypass_key")
     end
-else
-    print("HohoV2: Game " .. GameId .. " is not supported yet")
-    
+end)
+
+wait(0.2)
+
+StarterGui:SetCore("SendNotification", {
+    Title = "HohoV2 Blox Fruit",
+    Text = "Загрузка скрипта...",
+    Icon = "rbxassetid://16276677105"
+})
+
+wait(0.3)
+
+-- Загружаем hhhub
+local success, err = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kests1111/heraai/main/hhhub.lua"))()
+end)
+
+if success then
+    wait(0.5)
     StarterGui:SetCore("SendNotification", {
-        Title = "HohoV2",
-        Text = "Эта игра пока не поддерживается (GameId: " .. GameId .. ")",
+        Title = "✓ Loaded",
+        Text = "Скрипт успешно запущен!",
         Icon = "rbxassetid://16276677105",
         Duration = 3
+    })
+    print("HHHUB для Блокс Фрута загружен!")
+else
+    print("Error: " .. tostring(err))
+    StarterGui:SetCore("SendNotification", {
+        Title = "✗ Error",
+        Text = "Ошибка: " .. tostring(err):sub(1, 40),
+        Icon = "rbxassetid://16276677105",
+        Duration = 5
     })
 end
