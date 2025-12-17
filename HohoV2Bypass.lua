@@ -1,5 +1,5 @@
--- HohoV2 Advanced Bypass v2
--- Перехватываем luamor декодер и функции проверки
+-- HHHUB BYPASS - Обходит luamor проверку ключа
+-- Работает для любых скриптов с luamor защитой
 
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
@@ -7,76 +7,69 @@ local HttpService = game:GetService("HttpService")
 
 repeat task.wait() until game:IsLoaded() and Players.LocalPlayer
 
--- ЭТАП 1: Перехватываем loadstring ДО загрузки скрипта
-local originalLoadstring = loadstring
-local bypassedLoadstring = function(source, env)
-    if type(source) == "string" then
-        -- Если это луамор обфусцированный код - подменяем проверку ключа
-        source = source:gsub("local%s+key%s*=%s*[\"'].-[\"']", "local key = 'bypass_key'")
-        source = source:gsub("if%s+key%s*~=%s*[\"'].-[\"']", "if false")
-        source = source:gsub("KEY_VALID", "true")
-        source = source:gsub("Invalid%s+Key", "Valid Key")
+-- ЭТАП 1: Перехватываем httpget на уровне userdata
+local originalHttpGet = game:FindService("HttpService").GetAsync
+
+function game:HttpGet(url, ...)
+    -- Перехватываем проверку ключей
+    if string.find(url, "linkvertise") or string.find(url, "key") or string.find(url, "verify") then
+        return HttpService:JSONEncode({
+            code = "KEY_VALID",
+            message = "Valid",
+            valid = true
+        })
     end
-    return originalLoadstring(source, env or getfenv(2))
+    
+    -- Для обычных запросов используем оригинальную функцию
+    local success, result = pcall(function()
+        return originalHttpGet(HttpService, url, ...)
+    end)
+    
+    return success and result or ""
 end
 
--- Переопределяем loadstring
-loadstring = bypassedLoadstring
-_G.loadstring = bypassedLoadstring
+-- ЭТАП 2: Устанавливаем переменные ДО загрузки
+_G.script_key = "free_key_"..tostring(os.time())
+_G.MY_KEY_IS = "free_key_"..tostring(os.time())
+_G.KEY = "free_key_"..tostring(os.time())
+_G.key = "free_key_"..tostring(os.time())
 
--- ЭТАП 2: Устанавливаем переменные
-_G.HohoKey = "bypass"
-_G.HOHO_KEY = "bypass"
-_G.MY_KEY_IS = "bypass"
-_G.Script_Key = "bypass"
-_G.KEY = "bypass"
-_G.key = "bypass"
+getgenv().script_key = _G.script_key
+getgenv().MY_KEY_IS = _G.MY_KEY_IS
 
--- Подменяем require для перехвата модулей
-local originalRequire = require
-_G.require = function(mod)
-    local result = originalRequire(mod)
-    if type(result) == "table" then
-        result.key = "bypass"
-        result.KEY = "bypass"
+-- Сохраняем ключ в файл если возможно
+pcall(function()
+    if writefile then
+        writefile("HohoKeyV4.txt", _G.script_key)
     end
-    return result
-end
+end)
 
 wait(0.3)
 
 StarterGui:SetCore("SendNotification",{
-    Title = "HohoV2 Loader",
-    Text = "Инициализация байпасса...",
+    Title = "Script Loading",
+    Text = "Загрузка hhhub без ключа...",
     Icon = "rbxassetid://16276677105"
 })
 
 wait(0.5)
 
--- ЭТАП 3: Загружаем скрипт с перехватом
-local success, err = pcall(function()
-    local scriptData = game:HttpGet("https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_UI")
-    
-    -- Проходим скрипт и убираем проверки ключа
-    scriptData = scriptData:gsub("tonumber%(KEY%)", "1")
-    scriptData = scriptData:gsub("KEY%s*==%s*nil", "false")
-    scriptData = scriptData:gsub("check%-key", "check_bypass")
-    
-    originalLoadstring(scriptData)()
+-- ЭТАП 3: Загружаем hhhub с перехватом ошибок
+local success, result = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kests1111/heraai/main/hhhub.lua"))()
 end)
 
 if success then
-    wait(1)
     StarterGui:SetCore("SendNotification",{
-        Title = "Success! ✓",
-        Text = "HohoV2 загружен без ключа!",
+        Title = "✓ Success",
+        Text = "HHHUB успешно загружен!",
         Icon = "rbxassetid://16276677105"
     })
 else
-    print("Bypass Error: " .. tostring(err))
     StarterGui:SetCore("SendNotification",{
-        Title = "Error",
-        Text = tostring(err):sub(1, 50),
+        Title = "✗ Error",
+        Text = tostring(result):sub(1, 50),
         Icon = "rbxassetid://16276677105"
     })
+    print("HHHUB BYPASS ERROR: "..tostring(result))
 end
