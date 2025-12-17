@@ -1,5 +1,5 @@
--- HohoV2 Bypass - Simple Version
--- Запускает HohoV2/Loading_UI без необходимости в ключе
+-- HohoV2 Advanced Bypass v2
+-- Перехватываем luamor декодер и функции проверки
 
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
@@ -7,54 +7,76 @@ local HttpService = game:GetService("HttpService")
 
 repeat task.wait() until game:IsLoaded() and Players.LocalPlayer
 
--- Устанавливаем фейк-ключ ПЕРЕД загрузкой скрипта
-_G.HohoKey = "bypass_free_key_"..tostring(os.time())
-_G.HOHO_KEY = "bypass_free_key_"..tostring(os.time())
-_G.MY_KEY_IS = "bypass_free_key_"..tostring(os.time())
-_G.Script_Key = "bypass_free_key_"..tostring(os.time())
-
-getgenv().HohoKey = _G.HohoKey
-getgenv().HOHO_KEY = _G.HOHO_KEY
-getgenv().MY_KEY_IS = _G.MY_KEY_IS
-getgenv().Script_Key = _G.Script_Key
-
--- Подменяем функцию для проверки ключа (если она существует)
-local oldHttpGet = game.HttpGet
-game.HttpGet = function(self, url, ...)
-    -- Перехватываем Linkvertise проверку
-    if string.find(url, "linkvertise") or string.find(url, "key") or string.find(url, "verify") then
-        return HttpService:JSONEncode({code = 200, success = true, valid = true})
+-- ЭТАП 1: Перехватываем loadstring ДО загрузки скрипта
+local originalLoadstring = loadstring
+local bypassedLoadstring = function(source, env)
+    if type(source) == "string" then
+        -- Если это луамор обфусцированный код - подменяем проверку ключа
+        source = source:gsub("local%s+key%s*=%s*[\"'].-[\"']", "local key = 'bypass_key'")
+        source = source:gsub("if%s+key%s*~=%s*[\"'].-[\"']", "if false")
+        source = source:gsub("KEY_VALID", "true")
+        source = source:gsub("Invalid%s+Key", "Valid Key")
     end
-    -- Для остальных запросов используем оригинальную функцию
-    return oldHttpGet(self, url, ...)
+    return originalLoadstring(source, env or getfenv(2))
+end
+
+-- Переопределяем loadstring
+loadstring = bypassedLoadstring
+_G.loadstring = bypassedLoadstring
+
+-- ЭТАП 2: Устанавливаем переменные
+_G.HohoKey = "bypass"
+_G.HOHO_KEY = "bypass"
+_G.MY_KEY_IS = "bypass"
+_G.Script_Key = "bypass"
+_G.KEY = "bypass"
+_G.key = "bypass"
+
+-- Подменяем require для перехвата модулей
+local originalRequire = require
+_G.require = function(mod)
+    local result = originalRequire(mod)
+    if type(result) == "table" then
+        result.key = "bypass"
+        result.KEY = "bypass"
+    end
+    return result
 end
 
 wait(0.3)
 
 StarterGui:SetCore("SendNotification",{
     Title = "HohoV2 Loader",
-    Text = "Загрузка скрипта без ключа...",
+    Text = "Инициализация байпасса...",
     Icon = "rbxassetid://16276677105"
 })
 
-wait(0.7)
+wait(0.5)
 
--- Загружаем основной скрипт HohoV2
+-- ЭТАП 3: Загружаем скрипт с перехватом
 local success, err = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_UI"))()
+    local scriptData = game:HttpGet("https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_UI")
+    
+    -- Проходим скрипт и убираем проверки ключа
+    scriptData = scriptData:gsub("tonumber%(KEY%)", "1")
+    scriptData = scriptData:gsub("KEY%s*==%s*nil", "false")
+    scriptData = scriptData:gsub("check%-key", "check_bypass")
+    
+    originalLoadstring(scriptData)()
 end)
 
 if success then
+    wait(1)
     StarterGui:SetCore("SendNotification",{
-        Title = "Success",
-        Text = "Скрипт успешно загружен!",
+        Title = "Success! ✓",
+        Text = "HohoV2 загружен без ключа!",
         Icon = "rbxassetid://16276677105"
     })
 else
+    print("Bypass Error: " .. tostring(err))
     StarterGui:SetCore("SendNotification",{
         Title = "Error",
-        Text = "Ошибка: "..tostring(err),
+        Text = tostring(err):sub(1, 50),
         Icon = "rbxassetid://16276677105"
     })
-    print("Error: "..tostring(err))
 end
